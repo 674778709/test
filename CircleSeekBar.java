@@ -92,7 +92,6 @@ public class CircleSeekBar extends View {
 
     private RectF rectF = new RectF(0, 0, 0, 0);
 
-
     public CircleSeekBar(Context context) {
         this(context, null);
     }
@@ -254,6 +253,7 @@ public class CircleSeekBar extends View {
 
         Log.i("refreshPosition: ", "mOffProcess=" + mOffProcess + ", mOffAngle=" + mOffAngle);
         Log.i("refreshPosition: ", "mOnProcess=" + mOnProcess + ", mOnAngle=" + mOnAngle);
+
         double cos = -Math.cos(Math.toRadians(mOffAngle));
         double cos2 = -Math.cos(Math.toRadians(mOnAngle));
         refreshOffWheelCurPosition(cos);
@@ -288,12 +288,9 @@ public class CircleSeekBar extends View {
         float wheelRadius = (canvas.getWidth() - getPaddingLeft() - getPaddingRight()) / 2 - mUnreachedWidth / 2;
         canvas.drawCircle(centerX, centerY, wheelRadius, mWheelPaint);
 
-        //      Log.i("TAG", "第一个的角度 off=" + mOffAngle);
-        //  Log.i("TAG", "第二个的角度 on=" + mOnAngle);
-
         float begin; // 圆弧的起点位置
         float sweepAngle; // 圆弧扫过的角度
-        if (mOffAngle >= mOnAngle) {
+        if (mOffAngle > mOnAngle) {
             begin = (float) mOnAngle - 90;
             sweepAngle = (float) (mOffAngle - mOnAngle);
         } else {
@@ -301,8 +298,9 @@ public class CircleSeekBar extends View {
             sweepAngle = 360 - (float) Math.abs(mOffAngle - mOnAngle);
         }
 
-        //   Log.i("TAG", "begin=" + begin);
-        //   Log.i("TAG", "sweepAngle=" + sweepAngle);
+        Log.i("onDraw", "mOnAngle:" + mOnAngle);
+        Log.i("onDraw", "mOffAngle:" + mOffAngle);
+        Log.i("onDraw", "sweepAngle=" + sweepAngle);
         rectF.set(left, top, right, bottom);
         //画选中区域
         canvas.drawArc(rectF, begin, sweepAngle, false, mReachedPaint);
@@ -313,8 +311,6 @@ public class CircleSeekBar extends View {
         //画锚点
         canvas.drawBitmap(mOnBitmap, mOnWheelCurX - mOnBitmap.getWidth() / 2, mOnWheelCurY - mOnBitmap.getHeight() / 2, mPointerPaint);
 
-        //   Log.i("TAG", "锚点1Y" + mOnWheelCurY + "锚点1X" + mOnWheelCurX);
-        //     Log.i("TAG", "锚点2Y" + mOffWheelCurY + "锚点1X" + mOffWheelCurX);
     }
 
 
@@ -331,6 +327,10 @@ public class CircleSeekBar extends View {
             flag = 1;
         }
 
+        if (event.getAction()== MotionEvent.ACTION_UP){
+            lastTabPoint = 0.0;
+        }
+
         if (isCanTouch && (event.getAction() == MotionEvent.ACTION_MOVE) || isMoveOn(x, y) || isMoveOff(x, y) || isTouch(x, y)) {
 
             // 通过当前触摸点搞到cos角度值
@@ -342,8 +342,6 @@ public class CircleSeekBar extends View {
             } else { // 没有超过180度
                 angle = Math.PI * RADIAN - Math.acos(cos) * RADIAN;
             }
-
-            //Log.i("TAG", "angel:" + angle);
             if (flag == 2) {
                 mOffAngle = angle;
                 if (mOffAngle < 0) {
@@ -373,34 +371,23 @@ public class CircleSeekBar extends View {
                     mOnChangListener.onChanged(this, mOnProcess);
                 }
             } else {
-                boolean isOnArc = false;
-                float sweepAngle; // 圆弧扫过的角度
+
+                boolean isOnArc;
                 if (mOffAngle >= mOnAngle) {
-                    sweepAngle = (float) (mOffAngle - mOnAngle);
+                    isOnArc = angle >= mOnAngle && angle <= mOffAngle;
                 } else {
-                    sweepAngle = 360 - (float) Math.abs(mOffAngle - mOnAngle);
-                }
-
-                double value = (x - mOnWheelCurX) / (mOffWheelCurX - mOnWheelCurX) - (y - mOnWheelCurY) / (mOffWheelCurY - mOnWheelCurY);
-                double centerX = getWidth() / 2;
-                double centerY = getHeight() / 2;
-                double value2 =  (centerX - mOnWheelCurX) / (mOffWheelCurX - mOnWheelCurX) - (centerY - mOnWheelCurY) / (mOffWheelCurY - mOnWheelCurY);
-                if (sweepAngle > 180){
-
-                    if (value > 0 && value2 > 0){
+                    if(angle >= mOnAngle && angle <= 360.0 ||
+                            angle >= 0.0 && angle <= mOffAngle ){
                         isOnArc = true;
-                    }
-                }else {
-                    // 劣
-                    if(value > 0 && value2 <0){
-                        isOnArc = true;
+                    }else{
+                        isOnArc = false;
                     }
                 }
 
-                Log.i("TAG", "value:" + value);
-                Log.i("TAG", "isOnArc:" + isOnArc);
-                Log.i("TAG", "angel:" + angle);
-                Log.i("TAG", "sweepAngle:" + sweepAngle);
+                Log.i("onTouchEvent", "angel:" + angle);
+                Log.i("onTouchEvent", "mOnAngle:" + mOnAngle);
+                Log.i("onTouchEvent", "mOffAngle:" + mOffAngle);
+                Log.i("onTouchEvent", "isOnArc:" + isOnArc);
                 if (isOnArc) {
                     if (lastTabPoint >= -0.000000000001 && lastTabPoint <= 0.000000000001) {
                         lastTabPoint = angle;
@@ -425,7 +412,6 @@ public class CircleSeekBar extends View {
                     }
 
                     // 头尾联动, 头尾角度不变
-                    //    Log.i("TAG", "flag:3");
                     mOnProcess = getSelectedValue(mOnAngle);
                     mOffProcess = getSelectedValue(mOffAngle);
 
